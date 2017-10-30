@@ -57,8 +57,8 @@ func displaySyntaxError(_ additionalMessage: String? = nil) {
 
 /// Group Files
 func createAliases(_ folderURL: URL, `for` namesURL: URL) {
-    var foldersCreated = 0
-    var aliasesCreated = 0
+    var foldersCreated: Set<String> = []
+    var aliasesCreated: Set<String> = []
 
     do {
         let inputNames = try String(contentsOfFile:namesURL.path, encoding: String.Encoding.utf8) 
@@ -68,11 +68,11 @@ func createAliases(_ folderURL: URL, `for` namesURL: URL) {
             let newFolder = names.first!
             let newFolderURL = folderURL.appendingPathComponent(newFolder)
             createFolder(newFolderURL)
-            foldersCreated += 1
+            foldersCreated = foldersCreated.insert(newFolder)
             for name in names.dropFirst(1) {
                 let aliasURL = folderURL.appendingPathComponent(name)
                 createAlias(aliasURL, for:newFolderURL)
-                aliasesCreated += 1
+                aliasesCreated = aliasesCreated.insert(name)
             }
         }           
     } catch let err as NSError {
@@ -82,7 +82,8 @@ func createAliases(_ folderURL: URL, `for` namesURL: URL) {
     }
     
     // Print output
-    print("\(aliasesCreated) aliases created for \(foldersCreated) folders")
+    print("\(aliasesCreated.count) aliases created: \(aliasesCreated.sorted())\n")
+    print("for \(foldersCreated.count) folders: \(foldersCreated.sorted())")
 }
 
 func createFolder(_ folder: URL) {
