@@ -24,11 +24,11 @@ func setup(_ commandLineArguments: [String]? = CommandLine.arguments) {
     // http://ericasadun.com/2014/06/12/swift-at-the-command-line/
     if let arguments = commandLineArguments {
         for (index, argument) in arguments.dropFirst().enumerated() {
-            switch argument.characters.first! {
-            case "/".characters.first!:
+            switch argument.first! {
+            case "/".first!:
                 folderURL = URL.init(fileURLWithPath: argument)
                 
-            case "-".characters.first!:
+            case "-".first!:
                 switch argument {
                 case "-h", "-help", "-?":			// Help
                     displaySyntaxError()
