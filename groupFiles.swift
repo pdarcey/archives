@@ -19,6 +19,7 @@ func setup(_ commandLineArguments: [String]? = CommandLine.arguments) {
     // Set default values
     let defaultFolderPath: String = "/Volumes/Archives/Sets"
     var folderURL: URL = URL.init(fileURLWithPath: defaultFolderPath)
+    var deleteDuplicates = false
         
     // Process launch arguments
     // http://ericasadun.com/2014/06/12/swift-at-the-command-line/
@@ -30,10 +31,12 @@ func setup(_ commandLineArguments: [String]? = CommandLine.arguments) {
                 
             case "-".first!:
                 switch argument {
-                case "-h", "-help", "-?":			// Help
+                case "-h", "-help", "-?":			 // Help
                     displaySyntaxError()
                 case "-o", "-output":			     // Alternative folder path
                     folderURL = URL.init(fileURLWithPath: arguments[index + 1])
+                case "-d":                           // Delete duplicates
+                    deleteDuplicates = true
                 default:
                     displaySyntaxError()
                 }
@@ -43,7 +46,7 @@ func setup(_ commandLineArguments: [String]? = CommandLine.arguments) {
         }
     }
     
-   groupFiles(folderURL)
+    groupFiles(folderURL, deleteDuplicates: deleteDuplicates)
 }
 
 /// Add error message to Setup
@@ -59,7 +62,7 @@ func displaySyntaxError(_ additionalMessage: String? = nil) {
 }
 
 /// Group Files
-func groupFiles(_ url: URL) {
+func groupFiles(_ url: URL, deleteDuplicates: Bool = false) {
     let fileManager = FileManager.default
     var filesFound = 0
     var newFolders: Set<String> = []
@@ -84,7 +87,7 @@ func groupFiles(_ url: URL) {
                     }
                 }
                 let firstNameURL = url.appendingPathComponent(name)
-                let results = moveFile(fileOrFolder, to: firstNameURL)
+                let results = moveFile(fileOrFolder, to: firstNameURL, deleteDuplicates: deleteDuplicates)
                 otherProblems = otherProblems.union(results)
                 
                 // Create symlinks/aliases for each name except the first
@@ -100,6 +103,7 @@ func groupFiles(_ url: URL) {
                     }
                     let results = makeLink(at: url.appendingPathComponent(name).appendingPathComponent(fileOrFolder.lastPathComponent), to: firstNameURL.appendingPathComponent(fileOrFolder.lastPathComponent))
                     otherProblems = otherProblems.union(results)
+                    allNames.insert(name)
                 }
             }
         }
@@ -151,7 +155,7 @@ func makeLink(at url: URL, to fileOrFolder: URL) -> Set<String> {
     return otherProblems
 }
 
-func moveFile(_ fileOrFolder: URL, to url: URL) -> Set<String> {
+func moveFile(_ fileOrFolder: URL, to url: URL, deleteDuplicates: Bool) -> Set<String> {
     var otherProblems: Set<String> = []
     let fileManager = FileManager.default
     // Resolve symbolic link for destination, if necessary
@@ -170,6 +174,10 @@ func moveFile(_ fileOrFolder: URL, to url: URL) -> Set<String> {
                 }
             } else {
                 otherProblems.insert("Duplicate: \(fileOrFolder.lastPathComponent)")
+                if deleteDuplicates {
+                    let results = deleteFolder(fileOrFolder)
+                    otherProblems = otherProblems.union(results)
+                }
             }
         } else {
                 otherProblems.insert("Destination (\(toURL)) is not a directory")
@@ -178,6 +186,19 @@ func moveFile(_ fileOrFolder: URL, to url: URL) -> Set<String> {
         otherProblems.insert("Destination is not a valid URL")
     }
     
+    return otherProblems
+}
+
+func deleteFolder(_ folder: URL) -> Set<String> {
+    var otherProblems: Set<String> = []
+    let fileManager = FileManager.default
+    do {
+        try fileManager.removeItem(at: folder)
+        otherProblems.insert("Deleted duplicate \(folder.lastPathComponent)")
+    } catch {
+        otherProblems.insert("Failed to delete duplicate:\(folder.lastPathComponent)\nError: \(error)")
+    }
+
     return otherProblems
 }
 
