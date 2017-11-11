@@ -173,10 +173,11 @@ func moveFile(_ fileOrFolder: URL, to url: URL, deleteDuplicates: Bool) -> Set<S
                     otherProblems.insert("Failed to move \(fileOrFolder.lastPathComponent) to \(url)\nError: \(error)")
                 }
             } else {
-                otherProblems.insert("Duplicate: \(fileOrFolder.lastPathComponent)")
                 if deleteDuplicates {
                     let results = deleteFolder(fileOrFolder)
                     otherProblems = otherProblems.union(results)
+                } else {
+                    otherProblems.insert("Duplicate: \(fileOrFolder.lastPathComponent)")
                 }
             }
         } else {
@@ -194,7 +195,7 @@ func deleteFolder(_ folder: URL) -> Set<String> {
     let fileManager = FileManager.default
     do {
         try fileManager.removeItem(at: folder)
-        otherProblems.insert("Deleted duplicate \(folder.lastPathComponent)")
+        otherProblems.insert("Duplicate: \(folder.lastPathComponent) (deleted)")
     } catch {
         otherProblems.insert("Failed to delete duplicate:\(folder.lastPathComponent)\nError: \(error)")
     }
